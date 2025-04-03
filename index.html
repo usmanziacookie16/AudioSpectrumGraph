@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Audio Spectrum</title>
     <style>
+        /* Default styles for light mode */
         body {
             font-family: Arial, sans-serif;
             text-align: center;
@@ -16,29 +17,64 @@
             background: linear-gradient(to right, #141E30, #243B55);
             color: white;
         }
+
+        /* Styles for dark mode */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: linear-gradient(to right, #1e1e1e, #333333);
+                color: white;
+            }
+
+            .toggle-btn {
+                background: #4CAF50;
+                color: white;
+            }
+
+            canvas {
+                background: linear-gradient(135deg, #1e3c72, #2a5298);
+            }
+        }
+
+        /* Styles for light mode */
+        @media (prefers-color-scheme: light) {
+            body {
+                background: linear-gradient(to right, #f0f0f0, #ffffff);
+                color: black;
+            }
+
+            .toggle-btn {
+                background: #4CAF50;
+                color: white;
+            }
+
+            canvas {
+                background: linear-gradient(135deg, #a1c4fd, #c2e9fb);
+            }
+        }
+
         .container {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
         }
+
         canvas {
             margin-top: 20px;
             border-radius: 10px;
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
         }
+
         .toggle-btn {
             margin-top: 20px;
             padding: 12px 24px;
             font-size: 16px;
             border: none;
-            background: #4CAF50;
-            color: white;
             border-radius: 8px;
             cursor: pointer;
             transition: background 0.3s, transform 0.2s;
         }
+
         .toggle-btn:hover {
             background: #45a049;
             transform: scale(1.05);
