@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amplitude Spectrum Graph</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        canvas {
+            margin-top: 20px;
+            border: 2px solid #333;
+            background-color: white;
+        }
+        .toggle-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            background: #4CAF50;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .toggle-btn:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Amplitude Spectrum Graph</h2>
+        <canvas id="amplitudeCanvas" width="600" height="300"></canvas>
+        <p>F1 Frequency: <span id="f1Freq">0</span> Hz</p>
+        <p>F2 Frequency: <span id="f2Freq">0</span> Hz</p>
+        <button class="toggle-btn" id="toggleBtn">Start</button>
+    </div>
+    <script>
+        let audioContext, analyser, microphone, dataArray, animationFrame;
+        let isRunning = false;
+        const canvas = document.getElementById('amplitudeCanvas');
+        const ctx = canvas.getContext('2d');
+        const f1FreqDisplay = document.getElementById('f1Freq');
+        const f2FreqDisplay = document.getElementById('f2Freq');
+        const toggleBtn = document.getElementById('toggleBtn');
+
+        function startMicrophone() {
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                microphone = audioContext.createMediaStreamSource(stream);
+                analyser.fftSize = 512;
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+                microphone.connect(analyser);
+
+                function updateGraph() {
+                    analyser.getByteFrequencyData(dataArray);
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#2196F3';
+                    let barWidth = (canvas.width / dataArray.length) * 2.5;
+                    let x = 0;
+                    let max1 = 0, max2 = 0, f1 = 0, f2 = 0;
+                    for (let i = 0; i < dataArray.length; i++) {
+                        let barHeight = dataArray[i] / 2;
+                        ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                        if (dataArray[i] > max1) {
+                            max2 = max1;
+                            f2 = f1;
+                            max1 = dataArray[i];
+                            f1 = i * audioContext.sampleRate / analyser.fftSize;
+                        } else if (dataArray[i] > max2) {
+                            max2 = dataArray[i];
+                            f2 = i * audioContext.sampleRate / analyser.fftSize;
+                        }
+                        x += barWidth + 1;
+                    }
+                    f1FreqDisplay.textContent = Math.round(f1);
+                    f2FreqDisplay.textContent = Math.round(f2);
+                    if (isRunning) animationFrame = requestAnimationFrame(updateGraph);
+                }
+                updateGraph();
+            }).catch(error => {
+                console.error('Error accessing microphone:', error);
+            });
+        }
+
+        toggleBtn.addEventListener('click', () => {
+            if (!isRunning) {
+                startMicrophone();
+                toggleBtn.textContent = "Stop";
+            } else {
+                cancelAnimationFrame(animationFrame);
+                if (audioContext) audioContext.close();
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                f1FreqDisplay.textContent = "0";
+                f2FreqDisplay.textContent = "0";
+                toggleBtn.textContent = "Start";
+            }
+            isRunning = !isRunning;
+        });
+    </script>
+</body>
+</html>
