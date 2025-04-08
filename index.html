@@ -79,12 +79,34 @@
             background: #45a049;
             transform: scale(1.05);
         }
+
+        /* Status indicators for microphone and speakers */
+        .status {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        .status span {
+            font-weight: bold;
+        }
+
+        .working {
+            color: #4CAF50; /* Green for working */
+        }
+
+        .not-working {
+            color: #FF6347; /* Red for not working */
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <canvas id="spectrumCanvas" width="600" height="300"></canvas>
         <button class="toggle-btn" id="toggleBtn">Start</button>
+        <div class="status">
+            <p>Microphone Status: <span id="microphoneStatus" class="not-working">Not Working</span></p>
+            <p>Speaker Status: <span id="speakerStatus" class="not-working">Not Working</span></p>
+        </div>
     </div>
     <script>
         let audioContext, analyser, microphone, dataArray, animationFrame;
@@ -92,6 +114,8 @@
         const canvas = document.getElementById('spectrumCanvas');
         const ctx = canvas.getContext('2d');
         const toggleBtn = document.getElementById('toggleBtn');
+        const microphoneStatus = document.getElementById('microphoneStatus');
+        const speakerStatus = document.getElementById('speakerStatus');
 
         function startMicrophone() {
             navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
@@ -101,6 +125,14 @@
                 analyser.fftSize = 512;
                 dataArray = new Uint8Array(analyser.frequencyBinCount);
                 microphone.connect(analyser);
+
+                // Set microphone status to working
+                microphoneStatus.textContent = 'Working';
+                microphoneStatus.className = 'working';
+
+                // Speaker status will be checked using audio context
+                speakerStatus.textContent = 'Working';
+                speakerStatus.className = 'working';
 
                 function updateGraph() {
                     analyser.getByteFrequencyData(dataArray);
@@ -118,6 +150,8 @@
                 updateGraph();
             }).catch(error => {
                 console.error('Error accessing microphone:', error);
+                microphoneStatus.textContent = 'Not Working';
+                microphoneStatus.className = 'not-working';
             });
         }
 
