@@ -1,197 +1,196 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Spectrum</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 0;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(to right, #141E30, #243B55);
-            color: white;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Microphone & Speaker Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #141E30, #243B55);
+      color: white;
+      text-align: center;
+      padding: 2rem;
+    }
 
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
+    .test-section {
+      margin: 2rem auto;
+      max-width: 600px;
+      background: #1f2a3a;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    }
 
-        canvas {
-            margin-top: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-        }
+    h2 {
+      margin-bottom: 1rem;
+    }
 
-        .toggle-btn {
-            margin-top: 20px;
-            padding: 12px 24px;
-            font-size: 16px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.3s, transform 0.2s;
-        }
+    canvas {
+      margin-top: 1rem;
+      border-radius: 10px;
+      background: black;
+    }
 
-        .toggle-btn:hover {
-            background: #45a049;
-            transform: scale(1.05);
-        }
+    .button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-top: 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+    }
 
-        .status {
-            margin-top: 20px;
-            font-size: 18px;
-        }
+    .status {
+      margin-top: 1rem;
+    }
 
-        .status span {
-            font-weight: bold;
-        }
+    .slider-container {
+      margin-top: 1rem;
+    }
 
-        .working {
-            color: #4CAF50; /* Green for working */
-        }
+    input[type="range"] {
+      width: 200px;
+    }
 
-        .not-working {
-            color: #FF6347; /* Red for not working */
-        }
+    .working {
+      color: #4CAF50;
+    }
 
-        .slider-container {
-            margin-top: 20px;
-        }
-
-        .slider-container input {
-            margin: 10px 0;
-            width: 200px;
-        }
-    </style>
+    .not-working {
+      color: #FF6347;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <canvas id="spectrumCanvas" width="600" height="300"></canvas>
-        <button class="toggle-btn" id="toggleBtn">Start</button>
-        <div class="status">
-            <p>Microphone Status: <span id="microphoneStatus" class="not-working">Device not connected yet</span></p>
-            <p>Speaker Status: <span id="speakerStatus" class="not-working">Device not connected yet</span></p>
-        </div>
-        <div class="slider-container">
-            <label for="microphoneVolume">Microphone Volume: </label>
-            <input type="range" id="microphoneVolume" min="0" max="1" step="0.01" value="1">
-            <label for="speakerVolume">Speaker Volume: </label>
-            <input type="range" id="speakerVolume" min="0" max="1" step="0.01" value="1">
-        </div>
+  <div class="test-section">
+    <h2>Microphone Test</h2>
+    <canvas id="micCanvas" width="500" height="200"></canvas>
+    <div class="slider-container">
+      <label>Microphone Volume: </label>
+      <input type="range" id="micVolume" min="0" max="1" step="0.01" value="1">
     </div>
-    <script>
-        let audioContext, analyser, microphone, dataArray, animationFrame, gainNode, oscillator, speakerGainNode;
-        let isRunning = false;
-        const canvas = document.getElementById('spectrumCanvas');
-        const ctx = canvas.getContext('2d');
-        const toggleBtn = document.getElementById('toggleBtn');
-        const microphoneStatus = document.getElementById('microphoneStatus');
-        const speakerStatus = document.getElementById('speakerStatus');
-        const microphoneVolume = document.getElementById('microphoneVolume');
-        const speakerVolume = document.getElementById('speakerVolume');
+    <button class="button" id="testMicBtn">Test Microphone</button>
+    <div class="status">
+      Mic Status: <span id="micStatus" class="not-working">Device not connected yet</span>
+    </div>
+  </div>
 
-        function startMicrophone() {
-            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                analyser = audioContext.createAnalyser();
-                microphone = audioContext.createMediaStreamSource(stream);
-                analyser.fftSize = 512;
-                dataArray = new Uint8Array(analyser.frequencyBinCount);
-                microphone.connect(analyser);
+  <div class="test-section">
+    <h2>Speaker Test</h2>
+    <div class="slider-container">
+      <label>Speaker Volume: </label>
+      <input type="range" id="speakerVolume" min="0" max="1" step="0.01" value="1">
+    </div>
+    <button class="button" id="testSpeakerBtn">Test Speaker</button>
+    <div class="status">
+      Speaker Status: <span id="speakerStatus" class="not-working">Device not connected yet</span>
+    </div>
+  </div>
 
-                // Create a Gain Node for microphone volume adjustment
-                gainNode = audioContext.createGain();
-                gainNode.gain.value = microphoneVolume.value;
-                microphone.connect(gainNode);
-                gainNode.connect(audioContext.destination);
+  <script>
+    let audioContext;
+    let micSource, micAnalyser, micDataArray, micGain;
+    let speakerGainNode, oscillator;
+    let micRunning = false;
 
-                // Set microphone status to working
-                microphoneStatus.textContent = 'Working';
-                microphoneStatus.className = 'working';
+    const micCanvas = document.getElementById('micCanvas');
+    const micCtx = micCanvas.getContext('2d');
+    const micStatus = document.getElementById('micStatus');
+    const speakerStatus = document.getElementById('speakerStatus');
 
-                // Test speakers by generating a sound
-                testSpeakers();
+    const micVolumeSlider = document.getElementById('micVolume');
+    const speakerVolumeSlider = document.getElementById('speakerVolume');
 
-                function updateGraph() {
-                    analyser.getByteFrequencyData(dataArray);
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.fillStyle = '#00ffcc';
-                    let barWidth = (canvas.width / dataArray.length) * 2.5;
-                    let x = 0;
-                    for (let i = 0; i < dataArray.length; i++) {
-                        let barHeight = dataArray[i] / 2;
-                        ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-                        x += barWidth + 1;
-                    }
-                    if (isRunning) animationFrame = requestAnimationFrame(updateGraph);
-                }
-                updateGraph();
-            }).catch(error => {
-                console.error('Error accessing microphone:', error);
-                microphoneStatus.textContent = 'Device not working';
-                microphoneStatus.className = 'not-working';
-            });
+    document.getElementById('testMicBtn').addEventListener('click', async () => {
+      if (micRunning) return;
+
+      micRunning = true;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        micSource = audioContext.createMediaStreamSource(stream);
+        micAnalyser = audioContext.createAnalyser();
+        micAnalyser.fftSize = 512;
+        micDataArray = new Uint8Array(micAnalyser.frequencyBinCount);
+
+        micGain = audioContext.createGain();
+        micGain.gain.value = micVolumeSlider.value;
+
+        micSource.connect(micGain);
+        micGain.connect(micAnalyser);
+        micGain.connect(audioContext.destination);
+
+        micStatus.textContent = "Working";
+        micStatus.className = "working";
+
+        function draw() {
+          micAnalyser.getByteFrequencyData(micDataArray);
+          micCtx.clearRect(0, 0, micCanvas.width, micCanvas.height);
+          micCtx.fillStyle = "#00ffcc";
+          let barWidth = (micCanvas.width / micDataArray.length) * 2.5;
+          let x = 0;
+          for (let i = 0; i < micDataArray.length; i++) {
+            let barHeight = micDataArray[i] / 2;
+            micCtx.fillRect(x, micCanvas.height - barHeight, barWidth, barHeight);
+            x += barWidth + 1;
+          }
+          if (micRunning) requestAnimationFrame(draw);
         }
 
-        function testSpeakers() {
-            // Create an oscillator to generate a sound (this will play a sine wave)
-            oscillator = audioContext.createOscillator();
-            speakerGainNode = audioContext.createGain();
-            oscillator.connect(speakerGainNode);
-            speakerGainNode.connect(audioContext.destination);
+        draw();
+      } catch (err) {
+        console.error("Mic error:", err);
+        micStatus.textContent = "Device not working";
+        micStatus.className = "not-working";
+        micRunning = false;
+      }
+    });
 
-            // Set up the oscillator to generate a tone
-            oscillator.type = 'sine'; // Sine wave for smooth sound
-            oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // 440 Hz (A4 note)
+    micVolumeSlider.addEventListener('input', () => {
+      if (micGain) {
+        micGain.gain.value = micVolumeSlider.value;
+      }
+    });
 
-            // Set initial speaker volume
-            speakerGainNode.gain.value = speakerVolume.value;
-
-            // Start the oscillator sound
-            oscillator.start();
-
-            // Stop after 2 seconds (for testing purpose)
-            setTimeout(() => {
-                oscillator.stop();
-                speakerStatus.textContent = 'Working';
-                speakerStatus.className = 'working';
-            }, 2000);
+    document.getElementById('testSpeakerBtn').addEventListener('click', () => {
+      try {
+        if (!audioContext || audioContext.state === 'closed') {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
         }
 
-        toggleBtn.addEventListener('click', () => {
-            if (!isRunning) {
-                startMicrophone();
-                toggleBtn.textContent = "Stop";
-            } else {
-                cancelAnimationFrame(animationFrame);
-                if (audioContext) audioContext.close();
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                toggleBtn.textContent = "Start";
-            }
-            isRunning = !isRunning;
-        });
+        oscillator = audioContext.createOscillator();
+        speakerGainNode = audioContext.createGain();
 
-        // Adjust microphone volume when slider is moved
-        microphoneVolume.addEventListener('input', () => {
-            if (gainNode) {
-                gainNode.gain.value = microphoneVolume.value;
-            }
-        });
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 note
+        speakerGainNode.gain.value = speakerVolumeSlider.value;
 
-        // Adjust speaker volume (simulated through the gain node)
-        speakerVolume.addEventListener('input', () => {
-            if (speakerGainNode) {
-                speakerGainNode.gain.value = speakerVolume.value;
-            }
-        });
-    </script>
+        oscillator.connect(speakerGainNode);
+        speakerGainNode.connect(audioContext.destination);
+
+        oscillator.start();
+        speakerStatus.textContent = "Working";
+        speakerStatus.className = "working";
+
+        setTimeout(() => {
+          oscillator.stop();
+        }, 2000);
+      } catch (err) {
+        console.error("Speaker error:", err);
+        speakerStatus.textContent = "Device not working";
+        speakerStatus.className = "not-working";
+      }
+    });
+
+    speakerVolumeSlider.addEventListener('input', () => {
+      if (speakerGainNode) {
+        speakerGainNode.gain.value = speakerVolumeSlider.value;
+      }
+    });
+  </script>
 </body>
 </html>
