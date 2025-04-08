@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Audio Spectrum</title>
     <style>
-        /* Default styles for light mode */
         body {
             font-family: Arial, sans-serif;
             text-align: center;
@@ -16,40 +15,6 @@
             align-items: center;
             background: linear-gradient(to right, #141E30, #243B55);
             color: white;
-        }
-
-        /* Styles for dark mode */
-        @media (prefers-color-scheme: dark) {
-            body {
-                background: linear-gradient(to right, #1e1e1e, #333333);
-                color: white;
-            }
-
-            .toggle-btn {
-                background: #4CAF50;
-                color: white;
-            }
-
-            canvas {
-                background: linear-gradient(135deg, #1e3c72, #2a5298);
-            }
-        }
-
-        /* Styles for light mode */
-        @media (prefers-color-scheme: light) {
-            body {
-                background: linear-gradient(to right, #f0f0f0, #ffffff);
-                color: black;
-            }
-
-            .toggle-btn {
-                background: #4CAF50;
-                color: white;
-            }
-
-            canvas {
-                background: linear-gradient(135deg, #a1c4fd, #c2e9fb);
-            }
         }
 
         .container {
@@ -80,7 +45,6 @@
             transform: scale(1.05);
         }
 
-        /* Status indicators for microphone and speakers */
         .status {
             margin-top: 20px;
             font-size: 18px;
@@ -124,7 +88,7 @@
         </div>
     </div>
     <script>
-        let audioContext, analyser, microphone, dataArray, animationFrame, gainNode;
+        let audioContext, analyser, microphone, dataArray, animationFrame, gainNode, oscillator, speakerGainNode;
         let isRunning = false;
         const canvas = document.getElementById('spectrumCanvas');
         const ctx = canvas.getContext('2d');
@@ -153,9 +117,8 @@
                 microphoneStatus.textContent = 'Working';
                 microphoneStatus.className = 'working';
 
-                // Simulate speaker status by checking output (you may need actual audio for real speaker feedback)
-                speakerStatus.textContent = 'Working';
-                speakerStatus.className = 'working';
+                // Test speakers by generating a sound
+                testSpeakers();
 
                 function updateGraph() {
                     analyser.getByteFrequencyData(dataArray);
@@ -178,6 +141,31 @@
             });
         }
 
+        function testSpeakers() {
+            // Create an oscillator to generate a sound (this will play a sine wave)
+            oscillator = audioContext.createOscillator();
+            speakerGainNode = audioContext.createGain();
+            oscillator.connect(speakerGainNode);
+            speakerGainNode.connect(audioContext.destination);
+
+            // Set up the oscillator to generate a tone
+            oscillator.type = 'sine'; // Sine wave for smooth sound
+            oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // 440 Hz (A4 note)
+
+            // Set initial speaker volume
+            speakerGainNode.gain.value = speakerVolume.value;
+
+            // Start the oscillator sound
+            oscillator.start();
+
+            // Stop after 2 seconds (for testing purpose)
+            setTimeout(() => {
+                oscillator.stop();
+                speakerStatus.textContent = 'Working';
+                speakerStatus.className = 'working';
+            }, 2000);
+        }
+
         toggleBtn.addEventListener('click', () => {
             if (!isRunning) {
                 startMicrophone();
@@ -198,10 +186,11 @@
             }
         });
 
-        // Adjust speaker volume (this is more simulated, actual speaker volume control is limited)
+        // Adjust speaker volume (simulated through the gain node)
         speakerVolume.addEventListener('input', () => {
-            // Here we can simulate speaker volume changes, but actual control may require OS-level control
-            console.log('Speaker volume adjusted:', speakerVolume.value);
+            if (speakerGainNode) {
+                speakerGainNode.gain.value = speakerVolume.value;
+            }
         });
     </script>
 </body>
