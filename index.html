@@ -11,29 +11,35 @@
       color: white;
       text-align: center;
       padding: 2rem;
+      margin: 0;
     }
 
     .test-section {
       margin: 2rem auto;
-      max-width: 600px;
+      max-width: 100%;
+      width: 90%;
       background: #1f2a3a;
       padding: 1.5rem;
       border-radius: 12px;
       box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+      box-sizing: border-box;
     }
 
     h2 {
       margin-bottom: 1rem;
+      font-size: 1.5rem;
     }
 
     canvas {
       margin-top: 1rem;
       border-radius: 10px;
       background: black;
+      width: 100%;
+      height: auto;
     }
 
     .button {
-      padding: 10px 20px;
+      padding: 12px 20px;
       font-size: 16px;
       margin-top: 1rem;
       border: none;
@@ -52,7 +58,9 @@
     }
 
     input[type="range"] {
-      width: 200px;
+      width: 100%;
+      max-width: 300px;
+      margin: 10px auto;
     }
 
     .working {
@@ -61,6 +69,28 @@
 
     .not-working {
       color: #FF6347;
+    }
+
+    /* Mobile responsive adjustments */
+    @media (max-width: 600px) {
+      body {
+        padding: 1rem;
+      }
+
+      h2 {
+        font-size: 1.2rem;
+      }
+
+      .test-section {
+        width: 100%;
+        padding: 1rem;
+      }
+
+      .button {
+        width: 100%;
+        font-size: 18px;
+        padding: 15px;
+      }
     }
   </style>
 </head>
