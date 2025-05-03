@@ -97,7 +97,7 @@
 <body>
   <div class="test-section">
     <h2>Microphone Test</h2>
-    <canvas id="micCanvas" width="500" height="200"></canvas>
+    <canvas id="micCanvas" width="500" height="50"></canvas>
     <div class="slider-container">
       <label>Microphone Volume: </label>
       <input type="range" id="micVolume" min="0" max="1" step="0.01" value="1">
@@ -163,7 +163,11 @@
           micAnalyser.getByteFrequencyData(micDataArray);
           micCtx.clearRect(0, 0, micCanvas.width, micCanvas.height);
 
-          const average = micDataArray.reduce((a, b) => a + b, 0) / micDataArray.length;
+          // Calculate the average loudness from the frequency data
+          const sum = micDataArray.reduce((a, b) => a + b, 0);
+          const average = sum / micDataArray.length;
+
+          // Scale this value to fit within the canvas height
           const barHeight = (average / 255) * micCanvas.height;
 
           micCtx.fillStyle = "#00ffcc";
