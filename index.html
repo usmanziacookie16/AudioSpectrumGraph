@@ -71,21 +71,17 @@
       color: #FF6347;
     }
 
-    /* Mobile responsive adjustments */
     @media (max-width: 600px) {
       body {
         padding: 1rem;
       }
-
       h2 {
         font-size: 1.2rem;
       }
-
       .test-section {
         width: 100%;
         padding: 1rem;
       }
-
       .button {
         width: 100%;
         font-size: 18px;
@@ -114,7 +110,7 @@
       <label>Speaker Volume: </label>
       <input type="range" id="speakerVolume" min="0" max="1" step="0.01" value="1">
     </div>
-    <button class="button" id="testSpeakerBtn">Test Speaker</button>
+    <button class="button" id="testSpeakerBtn">Start Speaker Test</button>
     <div class="status">
       Speaker Status: <span id="speakerStatus" class="not-working">Device not connected yet</span>
     </div>
@@ -125,6 +121,7 @@
     let micSource, micAnalyser, micDataArray, micGain;
     let speakerGainNode, oscillator;
     let micRunning = false;
+    let speakerRunning = false;
 
     const micCanvas = document.getElementById('micCanvas');
     const micCtx = micCanvas.getContext('2d');
@@ -185,11 +182,11 @@
     });
 
     document.getElementById('testSpeakerBtn').addEventListener('click', () => {
-      try {
-        if (!audioContext || audioContext.state === 'closed') {
-          audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        }
+      if (!audioContext || audioContext.state === 'closed') {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
 
+      if (!speakerRunning) {
         oscillator = audioContext.createOscillator();
         speakerGainNode = audioContext.createGain();
 
@@ -201,15 +198,20 @@
         speakerGainNode.connect(audioContext.destination);
 
         oscillator.start();
+        speakerRunning = true;
+
+        document.getElementById('testSpeakerBtn').textContent = "Stop Speaker Test";
         speakerStatus.textContent = "Working";
         speakerStatus.className = "working";
 
-        setTimeout(() => {
-          oscillator.stop();
-        }, 2000);
-      } catch (err) {
-        console.error("Speaker error:", err);
-        speakerStatus.textContent = "Device not working";
+      } else {
+        oscillator.stop();
+        oscillator.disconnect();
+        speakerGainNode.disconnect();
+        speakerRunning = false;
+
+        document.getElementById('testSpeakerBtn').textContent = "Start Speaker Test";
+        speakerStatus.textContent = "Stopped";
         speakerStatus.className = "not-working";
       }
     });
