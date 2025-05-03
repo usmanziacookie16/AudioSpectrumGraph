@@ -71,7 +71,6 @@
       color: #FF6347;
     }
 
-    /* Mobile responsive adjustments */
     @media (max-width: 600px) {
       body {
         padding: 1rem;
@@ -97,7 +96,7 @@
 <body>
   <div class="test-section">
     <h2>Microphone Test</h2>
-    <canvas id="micCanvas" width="500" height="200"></canvas>
+    <canvas id="micCanvas" width="500" height="50"></canvas>
     <div class="slider-container">
       <label>Microphone Volume: </label>
       <input type="range" id="micVolume" min="0" max="1" step="0.01" value="1">
@@ -158,16 +157,26 @@
         micStatus.className = "working";
 
         function draw() {
-          micAnalyser.getByteFrequencyData(micDataArray);
-          micCtx.clearRect(0, 0, micCanvas.width, micCanvas.height);
-          micCtx.fillStyle = "#00ffcc";
-          let barWidth = (micCanvas.width / micDataArray.length) * 2.5;
-          let x = 0;
+          micAnalyser.getByteTimeDomainData(micDataArray);
+
+          let sum = 0;
           for (let i = 0; i < micDataArray.length; i++) {
-            let barHeight = micDataArray[i] / 2;
-            micCtx.fillRect(x, micCanvas.height - barHeight, barWidth, barHeight);
-            x += barWidth + 1;
+            sum += Math.abs(micDataArray[i] - 128);
           }
+          let average = sum / micDataArray.length;
+          let normalized = average / 128; // range 0–1
+
+          micCtx.clearRect(0, 0, micCanvas.width, micCanvas.height);
+
+          // Background bar
+          micCtx.fillStyle = "#333";
+          micCtx.fillRect(0, micCanvas.height / 2 - 10, micCanvas.width, 20);
+
+          // Level bar
+          let barWidth = micCanvas.width * normalized;
+          micCtx.fillStyle = "#00ffcc";
+          micCtx.fillRect(0, micCanvas.height / 2 - 10, barWidth, 20);
+
           if (micRunning) requestAnimationFrame(draw);
         }
 
@@ -196,7 +205,7 @@
         speakerGainNode = audioContext.createGain();
 
         oscillator.type = "sine";
-        oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 note
+        oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
         speakerGainNode.gain.value = speakerVolumeSlider.value;
 
         oscillator.connect(speakerGainNode);
