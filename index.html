@@ -3,158 +3,95 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Microphone & Speaker Test</title>
+  <title>Mic Linear Volume Indicator</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(to right, #141E30, #243B55);
+      background: #121212;
       color: white;
+      font-family: Arial, sans-serif;
       text-align: center;
       padding: 2rem;
-      margin: 0;
     }
-
     .test-section {
-      margin: 2rem auto;
-      max-width: 100%;
-      width: 90%;
       background: #1f2a3a;
-      padding: 1.5rem;
-      border-radius: 12px;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-      box-sizing: border-box;
-    }
-
-    h2 {
-      margin-bottom: 1rem;
-      font-size: 1.5rem;
-    }
-
-    canvas {
-      margin-top: 1rem;
+      padding: 1rem;
       border-radius: 10px;
-      background: black;
-      width: 100%;
-      height: auto;
+      margin: 1rem auto;
+      width: 90%;
+      max-width: 500px;
     }
-
-    .button {
-      padding: 12px 20px;
-      font-size: 16px;
+    canvas {
+      width: 100%;
+      height: 20px;
+      background: #333;
+      border-radius: 10px;
       margin-top: 1rem;
+    }
+    button {
+      margin-top: 1rem;
+      padding: 10px 20px;
+      font-size: 16px;
       border: none;
-      border-radius: 8px;
+      border-radius: 5px;
       cursor: pointer;
-      background-color: #4CAF50;
+      background: #4CAF50;
       color: white;
     }
-
     .status {
       margin-top: 1rem;
     }
-
-    .slider-container {
-      margin-top: 1rem;
-    }
-
-    input[type="range"] {
-      width: 100%;
-      max-width: 300px;
-      margin: 10px auto;
-    }
-
-    .working {
-      color: #4CAF50;
-    }
-
-    .not-working {
-      color: #FF6347;
-    }
-
-    @media (max-width: 600px) {
-      body {
-        padding: 1rem;
-      }
-
-      h2 {
-        font-size: 1.2rem;
-      }
-
-      .test-section {
-        width: 100%;
-        padding: 1rem;
-      }
-
-      .button {
-        width: 100%;
-        font-size: 18px;
-        padding: 15px;
-      }
-    }
+    .working { color: #4CAF50; }
+    .not-working { color: #FF6347; }
   </style>
 </head>
 <body>
-  <div class="test-section">
-    <h2>Microphone Test</h2>
-    <canvas id="micCanvas" width="500" height="50"></canvas>
-    <div class="slider-container">
-      <label>Microphone Volume: </label>
-      <input type="range" id="micVolume" min="0" max="1" step="0.01" value="1">
-    </div>
-    <button class="button" id="testMicBtn">Test Microphone</button>
-    <div class="status">
-      Mic Status: <span id="micStatus" class="not-working">Device not connected yet</span>
-    </div>
-  </div>
 
   <div class="test-section">
-    <h2>Speaker Test</h2>
-    <div class="slider-container">
-      <label>Speaker Volume: </label>
-      <input type="range" id="speakerVolume" min="0" max="1" step="0.01" value="1">
-    </div>
-    <button class="button" id="testSpeakerBtn">Test Speaker</button>
-    <div class="status">
-      Speaker Status: <span id="speakerStatus" class="not-working">Device not connected yet</span>
-    </div>
+    <h2>Microphone Test</h2>
+    <canvas id="micCanvas" width="400" height="20"></canvas>
+    <button id="testMicBtn">Start Mic Test</button>
+    <div class="status">Mic Status: <span id="micStatus" class="not-working">Not connected</span></div>
   </div>
 
   <script>
-    let audioContext;
-    let micSource, micAnalyser, micDataArray, micGain;
-    let speakerGainNode, oscillator;
+    let audioContext, micSource, micAnalyser, micDataArray, micGain;
     let micRunning = false;
 
     const micCanvas = document.getElementById('micCanvas');
     const micCtx = micCanvas.getContext('2d');
     const micStatus = document.getElementById('micStatus');
-    const speakerStatus = document.getElementById('speakerStatus');
+    const testMicBtn = document.getElementById('testMicBtn');
 
-    const micVolumeSlider = document.getElementById('micVolume');
-    const speakerVolumeSlider = document.getElementById('speakerVolume');
-
-    document.getElementById('testMicBtn').addEventListener('click', async () => {
+    testMicBtn.addEventListener('click', async () => {
       if (micRunning) return;
-
       micRunning = true;
+
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
         micSource = audioContext.createMediaStreamSource(stream);
         micAnalyser = audioContext.createAnalyser();
         micAnalyser.fftSize = 512;
-        micDataArray = new Uint8Array(micAnalyser.frequencyBinCount);
+        micDataArray = new Uint8Array(micAnalyser.fftSize);
 
         micGain = audioContext.createGain();
-        micGain.gain.value = micVolumeSlider.value;
+        micGain.gain.value = 1;
 
         micSource.connect(micGain);
         micGain.connect(micAnalyser);
-        micGain.connect(audioContext.destination);
 
-        micStatus.textContent = "Working";
-        micStatus.className = "working";
+        micStatus.textContent = 'Working';
+        micStatus.className = 'working';
+
+        function getColor(normalized) {
+          if (normalized < 0.3) {
+            return '#00ff00'; // green
+          } else if (normalized < 0.6) {
+            return '#ffff00'; // yellow
+          } else {
+            return '#ff0000'; // red
+          }
+        }
 
         function draw() {
           micAnalyser.getByteTimeDomainData(micDataArray);
@@ -168,68 +105,29 @@
 
           micCtx.clearRect(0, 0, micCanvas.width, micCanvas.height);
 
-          // Background bar
-          micCtx.fillStyle = "#333";
-          micCtx.fillRect(0, micCanvas.height / 2 - 10, micCanvas.width, 20);
+          // Draw background bar
+          micCtx.fillStyle = '#333';
+          micCtx.fillRect(0, 0, micCanvas.width, micCanvas.height);
 
-          // Level bar
-          let barWidth = micCanvas.width * normalized;
-          micCtx.fillStyle = "#00ffcc";
-          micCtx.fillRect(0, micCanvas.height / 2 - 10, barWidth, 20);
+          // Get color based on volume
+          let color = getColor(normalized);
 
-          if (micRunning) requestAnimationFrame(draw);
+          // Draw volume bar
+          micCtx.fillStyle = color;
+          micCtx.fillRect(0, 0, micCanvas.width * normalized, micCanvas.height);
+
+          requestAnimationFrame(draw);
         }
 
         draw();
       } catch (err) {
-        console.error("Mic error:", err);
-        micStatus.textContent = "Device not working";
-        micStatus.className = "not-working";
+        console.error('Mic error:', err);
+        micStatus.textContent = 'Device not working';
+        micStatus.className = 'not-working';
         micRunning = false;
       }
     });
-
-    micVolumeSlider.addEventListener('input', () => {
-      if (micGain) {
-        micGain.gain.value = micVolumeSlider.value;
-      }
-    });
-
-    document.getElementById('testSpeakerBtn').addEventListener('click', () => {
-      try {
-        if (!audioContext || audioContext.state === 'closed') {
-          audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        }
-
-        oscillator = audioContext.createOscillator();
-        speakerGainNode = audioContext.createGain();
-
-        oscillator.type = "sine";
-        oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
-        speakerGainNode.gain.value = speakerVolumeSlider.value;
-
-        oscillator.connect(speakerGainNode);
-        speakerGainNode.connect(audioContext.destination);
-
-        oscillator.start();
-        speakerStatus.textContent = "Working";
-        speakerStatus.className = "working";
-
-        setTimeout(() => {
-          oscillator.stop();
-        }, 2000);
-      } catch (err) {
-        console.error("Speaker error:", err);
-        speakerStatus.textContent = "Device not working";
-        speakerStatus.className = "not-working";
-      }
-    });
-
-    speakerVolumeSlider.addEventListener('input', () => {
-      if (speakerGainNode) {
-        speakerGainNode.gain.value = speakerVolumeSlider.value;
-      }
-    });
   </script>
+
 </body>
 </html>
