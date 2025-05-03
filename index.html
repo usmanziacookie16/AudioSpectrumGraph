@@ -1,37 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Audio Testing</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Microphone & Speaker Test</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background: linear-gradient(to right, #141E30, #243B55);
       color: white;
       text-align: center;
-      padding: 1rem;
+      padding: 2rem;
       margin: 0;
     }
 
     .test-section {
-      margin: 1rem auto;
-      max-width: 600px;
+      margin: 2rem auto;
+      max-width: 100%;
       width: 90%;
       background: #1f2a3a;
-      padding: 1rem;
+      padding: 1.5rem;
       border-radius: 12px;
       box-shadow: 0 5px 20px rgba(0,0,0,0.3);
       box-sizing: border-box;
     }
 
     h2 {
-      margin-bottom: 0.5rem;
+      margin-bottom: 1rem;
       font-size: 1.5rem;
     }
 
     canvas {
-      margin-top: 0.5rem;
+      margin-top: 1rem;
       border-radius: 10px;
       background: black;
       width: 100%;
@@ -39,9 +39,9 @@
     }
 
     .button {
-      padding: 10px 16px;
-      font-size: 15px;
-      margin-top: 0.5rem;
+      padding: 12px 20px;
+      font-size: 16px;
+      margin-top: 1rem;
       border: none;
       border-radius: 8px;
       cursor: pointer;
@@ -50,19 +50,28 @@
     }
 
     .status {
-      margin-top: 0.5rem;
+      margin-top: 1rem;
     }
 
     .slider-container {
-      margin-top: 0.5rem;
+      margin-top: 1rem;
     }
 
     input[type="range"] {
       width: 100%;
       max-width: 300px;
-      margin: 5px auto;
+      margin: 10px auto;
     }
 
+    .working {
+      color: #4CAF50;
+    }
+
+    .not-working {
+      color: #FF6347;
+    }
+
+    /* Mobile responsive adjustments */
     @media (max-width: 600px) {
       body {
         padding: 1rem;
@@ -74,98 +83,174 @@
 
       .test-section {
         width: 100%;
-        padding: 0.8rem;
+        padding: 1rem;
       }
 
       .button {
         width: 100%;
-        font-size: 16px;
-        padding: 12px;
+        font-size: 18px;
+        padding: 15px;
       }
     }
   </style>
 </head>
 <body>
-  <div class="test-section" id="stressTest">
-    <h2>Stress Test</h2>
-    <canvas id="stressChart"></canvas>
-    <div class="status" id="stressStatus">Status: --</div>
+  <div class="test-section">
+    <h2>Microphone Test</h2>
+    <canvas id="micCanvas" width="500" height="5"></canvas>
     <div class="slider-container">
-      <input type="range" id="stressInput" min="0" max="100" value="0">
+      <label>Microphone Volume: </label>
+      <input type="range" id="micVolume" min="0" max="1" step="0.01" value="1">
     </div>
-    <button class="button" onclick="updateStressLevel()">Update Stress</button>
+    <button class="button" id="testMicBtn">Test Microphone</button>
+    <div class="status">
+      Mic Status: <span id="micStatus" class="not-working">Device not connected yet</span>
+    </div>
   </div>
 
-  <div class="test-section" id="resilienceTest">
-    <h2>Resilience Test</h2>
-    <canvas id="resilienceChart"></canvas>
-    <div class="status" id="resilienceStatus">Status: --</div>
+  <div class="test-section">
+    <h2>Speaker Test</h2>
     <div class="slider-container">
-      <input type="range" id="resilienceInput" min="0" max="100" value="0">
+      <label>Speaker Volume: </label>
+      <input type="range" id="speakerVolume" min="0" max="1" step="0.01" value="1">
     </div>
-    <button class="button" onclick="updateResilienceLevel()">Update Resilience</button>
+    <button class="button" id="testSpeakerBtn">Test Speaker</button>
+    <div class="status">
+      Speaker Status: <span id="speakerStatus" class="not-working">Device not connected yet</span>
+    </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    const stressCtx = document.getElementById('stressChart').getContext('2d');
-    const resilienceCtx = document.getElementById('resilienceChart').getContext('2d');
+    let audioContext;
+    let micSource, micAnalyser, micDataArray, micGain;
+    let speakerGainNode, oscillator;
+    let micRunning = false;
+    let speakerRunning = false;
 
-    const stressChart = new Chart(stressCtx, {
-      type: 'bar',
-      data: {
-        labels: ['Stress Level'],
-        datasets: [{
-          label: 'Stress',
-          data: [0],
-          backgroundColor: getColor(0),
-        }]
-      },
-      options: {
-        scales: {
-          y: { min: 0, max: 100 }
+    const micCanvas = document.getElementById('micCanvas');
+    const micCtx = micCanvas.getContext('2d');
+    const micStatus = document.getElementById('micStatus');
+    const speakerStatus = document.getElementById('speakerStatus');
+
+    const micVolumeSlider = document.getElementById('micVolume');
+    const speakerVolumeSlider = document.getElementById('speakerVolume');
+
+    // Mic Test Button Click
+    document.getElementById('testMicBtn').addEventListener('click', async () => {
+      if (micRunning) return;
+
+      micRunning = true;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        micSource = audioContext.createMediaStreamSource(stream);
+        micAnalyser = audioContext.createAnalyser();
+        micAnalyser.fftSize = 512;
+        micDataArray = new Uint8Array(micAnalyser.frequencyBinCount);
+
+        micGain = audioContext.createGain();
+        micGain.gain.value = micVolumeSlider.value;
+
+        micSource.connect(micGain);
+        micGain.connect(micAnalyser);
+        micGain.connect(audioContext.destination);
+
+        micStatus.textContent = "Working";
+        micStatus.className = "working";
+
+        function draw() {
+          micAnalyser.getByteFrequencyData(micDataArray);
+          micCtx.clearRect(0, 0, micCanvas.width, micCanvas.height);
+
+          // Calculate the average loudness from the frequency data
+          const sum = micDataArray.reduce((a, b) => a + b, 0);
+          const average = sum / micDataArray.length;
+
+          // Calculate bar width based on the average loudness
+          const barWidth = (average / 255) * micCanvas.width;
+
+          // Determine the color based on loudness level
+          let color;
+          if (average < 85) {
+            color = "#00FF00"; // Green for low
+          } else if (average < 170) {
+            color = "#FFFF00"; // Yellow for mid
+          } else {
+            color = "#FF0000"; // Red for high
+          }
+
+          micCtx.fillStyle = color;
+          micCtx.fillRect(0, 0, barWidth, micCanvas.height); // Drawing a horizontal bar
+
+          if (micRunning) requestAnimationFrame(draw);
+        }
+
+        draw();
+      } catch (err) {
+        console.error("Mic error:", err);
+        micStatus.textContent = "Device not working";
+        micStatus.className = "not-working";
+        micRunning = false;
+      }
+    });
+
+    // Adjust mic volume
+    micVolumeSlider.addEventListener('input', () => {
+      if (micGain) {
+        micGain.gain.value = micVolumeSlider.value;
+      }
+    });
+
+    // Speaker Test Button Toggle
+    document.getElementById('testSpeakerBtn').addEventListener('click', () => {
+      if (speakerRunning) {
+        oscillator.stop();
+        speakerStatus.textContent = "Stopped";
+        speakerStatus.className = "not-working";
+        speakerRunning = false;
+      } else {
+        try {
+          if (!audioContext || audioContext.state === 'closed') {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          }
+
+          oscillator = audioContext.createOscillator();
+          speakerGainNode = audioContext.createGain();
+
+          oscillator.type = "sine";
+          oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 note
+          speakerGainNode.gain.value = speakerVolumeSlider.value;
+
+          oscillator.connect(speakerGainNode);
+          speakerGainNode.connect(audioContext.destination);
+
+          oscillator.start();
+          speakerStatus.textContent = "Playing";
+          speakerStatus.className = "working";
+
+          speakerRunning = true;
+
+          setTimeout(() => {
+            oscillator.stop();
+            speakerStatus.textContent = "Stopped";
+            speakerStatus.className = "not-working";
+            speakerRunning = false;
+          }, 2000);
+        } catch (err) {
+          console.error("Speaker error:", err);
+          speakerStatus.textContent = "Device not working";
+          speakerStatus.className = "not-working";
         }
       }
     });
 
-    const resilienceChart = new Chart(resilienceCtx, {
-      type: 'bar',
-      data: {
-        labels: ['Resilience Level'],
-        datasets: [{
-          label: 'Resilience',
-          data: [0],
-          backgroundColor: getColor(0),
-        }]
-      },
-      options: {
-        scales: {
-          y: { min: 0, max: 100 }
-        }
+    // Adjust speaker volume
+    speakerVolumeSlider.addEventListener('input', () => {
+      if (speakerGainNode) {
+        speakerGainNode.gain.value = speakerVolumeSlider.value;
       }
     });
-
-    function getColor(value) {
-      if (value < 33) return 'green';
-      else if (value < 66) return 'yellow';
-      else return 'red';
-    }
-
-    function updateStressLevel() {
-      const value = document.getElementById('stressInput').value;
-      stressChart.data.datasets[0].data = [value];
-      stressChart.data.datasets[0].backgroundColor = [getColor(value)];
-      stressChart.update();
-      document.getElementById('stressStatus').innerText = `Status: ${value}`;
-    }
-
-    function updateResilienceLevel() {
-      const value = document.getElementById('resilienceInput').value;
-      resilienceChart.data.datasets[0].data = [value];
-      resilienceChart.data.datasets[0].backgroundColor = [getColor(value)];
-      resilienceChart.update();
-      document.getElementById('resilienceStatus').innerText = `Status: ${value}`;
-    }
   </script>
 </body>
 </html>
