@@ -48,7 +48,7 @@
 
   <div class="test-section">
     <h2>Microphone Test</h2>
-    <canvas id="micCanvas" width="400" height="20"></canvas>
+    <canvas id="micCanvas" width="600" height="50"></canvas>
     <button id="testMicBtn">Start Mic Test</button>
     <div class="status">Mic Status: <span id="micStatus" class="not-working">Not connected</span></div>
   </div>
@@ -94,30 +94,24 @@
         }
 
         function draw() {
-          micAnalyser.getByteTimeDomainData(micDataArray);
+  micAnalyser.getByteFrequencyData(micDataArray);
+  micCtx.clearRect(0, 0, micCanvas.width, micCanvas.height);
 
-          let sum = 0;
-          for (let i = 0; i < micDataArray.length; i++) {
-            sum += Math.abs(micDataArray[i] - 128);
-          }
-          let average = sum / micDataArray.length;
-          let normalized = average / 128; // range 0–1
+  // Calculate average volume
+  let sum = 0;
+  for (let i = 0; i < micDataArray.length; i++) {
+    sum += micDataArray[i];
+  }
+  let average = sum / micDataArray.length;
 
-          micCtx.clearRect(0, 0, micCanvas.width, micCanvas.height);
+  // Draw linear bar
+  micCtx.fillStyle = "#00ffcc";
+  let barWidth = (average / 255) * micCanvas.width;
+  micCtx.fillRect(0, micCanvas.height / 2 - 10, barWidth, 20);
 
-          // Draw background bar
-          micCtx.fillStyle = '#333';
-          micCtx.fillRect(0, 0, micCanvas.width, micCanvas.height);
+  if (micRunning) requestAnimationFrame(draw);
+}
 
-          // Get color based on volume
-          let color = getColor(normalized);
-
-          // Draw volume bar
-          micCtx.fillStyle = color;
-          micCtx.fillRect(0, 0, micCanvas.width * normalized, micCanvas.height);
-
-          requestAnimationFrame(draw);
-        }
 
         draw();
       } catch (err) {
