@@ -97,7 +97,7 @@
 <body>
   <div class="test-section">
     <h2>Microphone Test</h2>
-    <canvas id="micCanvas" width="500" height="50"></canvas>
+    <canvas id="micCanvas" width="500" height="20"></canvas>
     <div class="slider-container">
       <label>Microphone Volume: </label>
       <input type="range" id="micVolume" min="0" max="1" step="0.01" value="1">
@@ -167,11 +167,11 @@
           const sum = micDataArray.reduce((a, b) => a + b, 0);
           const average = sum / micDataArray.length;
 
-          // Scale this value to fit within the canvas height
-          const barHeight = (average / 255) * micCanvas.height;
+          // Scale this value to fit within the canvas width (horizontal bar)
+          const barWidth = (average / 255) * micCanvas.width;
 
           micCtx.fillStyle = "#00ffcc";
-          micCtx.fillRect(0, micCanvas.height - barHeight, micCanvas.width, barHeight);
+          micCtx.fillRect(0, 0, barWidth, micCanvas.height); // Drawing a horizontal bar
 
           if (micRunning) requestAnimationFrame(draw);
         }
