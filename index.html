@@ -35,7 +35,7 @@
       border-radius: 10px;
       background: black;
       width: 100%;
-      height: 5px; /* Height set to 5px */
+      height: auto;
     }
 
     .button {
@@ -167,10 +167,20 @@
           const sum = micDataArray.reduce((a, b) => a + b, 0);
           const average = sum / micDataArray.length;
 
-          // Scale this value to fit within the canvas width (horizontal bar)
+          // Calculate bar width based on the average loudness
           const barWidth = (average / 255) * micCanvas.width;
 
-          micCtx.fillStyle = "#00ffcc";
+          // Determine the color based on loudness level
+          let color;
+          if (average < 85) {
+            color = "#00FF00"; // Green for low
+          } else if (average < 170) {
+            color = "#FFFF00"; // Yellow for mid
+          } else {
+            color = "#FF0000"; // Red for high
+          }
+
+          micCtx.fillStyle = color;
           micCtx.fillRect(0, 0, barWidth, micCanvas.height); // Drawing a horizontal bar
 
           if (micRunning) requestAnimationFrame(draw);
