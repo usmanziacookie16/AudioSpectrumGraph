@@ -71,17 +71,21 @@
       color: #FF6347;
     }
 
+    /* Mobile responsive adjustments */
     @media (max-width: 600px) {
       body {
         padding: 1rem;
       }
+
       h2 {
         font-size: 1.2rem;
       }
+
       .test-section {
         width: 100%;
         padding: 1rem;
       }
+
       .button {
         width: 100%;
         font-size: 18px;
@@ -110,7 +114,7 @@
       <label>Speaker Volume: </label>
       <input type="range" id="speakerVolume" min="0" max="1" step="0.01" value="1">
     </div>
-    <button class="button" id="testSpeakerBtn">Start Speaker Test</button>
+    <button class="button" id="testSpeakerBtn">Test Speaker</button>
     <div class="status">
       Speaker Status: <span id="speakerStatus" class="not-working">Device not connected yet</span>
     </div>
@@ -131,6 +135,7 @@
     const micVolumeSlider = document.getElementById('micVolume');
     const speakerVolumeSlider = document.getElementById('speakerVolume');
 
+    // Mic Test Button Click
     document.getElementById('testMicBtn').addEventListener('click', async () => {
       if (micRunning) return;
 
@@ -157,12 +162,13 @@
         function draw() {
           micAnalyser.getByteFrequencyData(micDataArray);
           micCtx.clearRect(0, 0, micCanvas.width, micCanvas.height);
+
+          const average = micDataArray.reduce((a, b) => a + b, 0) / micDataArray.length;
+          const barHeight = (average / 255) * micCanvas.height;
+
           micCtx.fillStyle = "#00ffcc";
-          let barHeight = (micCanvas.height / micDataArray.length) * 2.5;
-          for (let i = 0; i < micDataArray.length; i++) {
-            let barWidth = micDataArray[i] / 2;
-            micCtx.fillRect(0, i * (barHeight + 1), barWidth, barHeight);
-          }
+          micCtx.fillRect(0, micCanvas.height - barHeight, micCanvas.width, barHeight);
+
           if (micRunning) requestAnimationFrame(draw);
         }
 
@@ -175,47 +181,57 @@
       }
     });
 
+    // Adjust mic volume
     micVolumeSlider.addEventListener('input', () => {
       if (micGain) {
         micGain.gain.value = micVolumeSlider.value;
       }
     });
 
+    // Speaker Test Button Toggle
     document.getElementById('testSpeakerBtn').addEventListener('click', () => {
-      if (!audioContext || audioContext.state === 'closed') {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      }
-
-      if (!speakerRunning) {
-        oscillator = audioContext.createOscillator();
-        speakerGainNode = audioContext.createGain();
-
-        oscillator.type = "sine";
-        oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
-        speakerGainNode.gain.value = speakerVolumeSlider.value;
-
-        oscillator.connect(speakerGainNode);
-        speakerGainNode.connect(audioContext.destination);
-
-        oscillator.start();
-        speakerRunning = true;
-
-        document.getElementById('testSpeakerBtn').textContent = "Stop Speaker Test";
-        speakerStatus.textContent = "Working";
-        speakerStatus.className = "working";
-
-      } else {
+      if (speakerRunning) {
         oscillator.stop();
-        oscillator.disconnect();
-        speakerGainNode.disconnect();
-        speakerRunning = false;
-
-        document.getElementById('testSpeakerBtn').textContent = "Start Speaker Test";
         speakerStatus.textContent = "Stopped";
         speakerStatus.className = "not-working";
+        speakerRunning = false;
+      } else {
+        try {
+          if (!audioContext || audioContext.state === 'closed') {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          }
+
+          oscillator = audioContext.createOscillator();
+          speakerGainNode = audioContext.createGain();
+
+          oscillator.type = "sine";
+          oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A4 note
+          speakerGainNode.gain.value = speakerVolumeSlider.value;
+
+          oscillator.connect(speakerGainNode);
+          speakerGainNode.connect(audioContext.destination);
+
+          oscillator.start();
+          speakerStatus.textContent = "Playing";
+          speakerStatus.className = "working";
+
+          speakerRunning = true;
+
+          setTimeout(() => {
+            oscillator.stop();
+            speakerStatus.textContent = "Stopped";
+            speakerStatus.className = "not-working";
+            speakerRunning = false;
+          }, 2000);
+        } catch (err) {
+          console.error("Speaker error:", err);
+          speakerStatus.textContent = "Device not working";
+          speakerStatus.className = "not-working";
+        }
       }
     });
 
+    // Adjust speaker volume
     speakerVolumeSlider.addEventListener('input', () => {
       if (speakerGainNode) {
         speakerGainNode.gain.value = speakerVolumeSlider.value;
